@@ -238,11 +238,12 @@ void loop() {
       break;
     case 3: 
       lightRowsUp();
-      state = 0;
       break;
     case 4: 
       lightRowsDown();
-      state = 0;
+      break;
+    case 5: 
+    //Do nothing. Hold.
       break;
     case 9:
       turnOnToggles();
@@ -271,18 +272,41 @@ void initSwitches(){
 
 static int protoThreadGetSwitch(struct pt *pt){
   PT_BEGIN(pt);
-   
+
+    static bool sJsUp = false;
+    static bool sJsDn = false;
+    static bool sJsNu = false;
+
     int joyStickUp = digitalRead(B_JSU);
     
     if (joyStickUp == LOW) {
-      state = 3;
+      if(!sJsUp) {
+        state = 3;
+        sJsUp = true;
+      } else {
+        state = 5;
+      }
+      sJsNu = false;
     }
     
     int joyStickDown = digitalRead(B_JSD);
     
     if (joyStickDown == LOW) {
-      state = 4;
+      if(!sJsDn){
+        state = 4;
+        sJsDn = true;
+      } else {
+        state = 5;
+      }
+      sJsNu = false;
     }
+
+     if (joyStickUp != LOW && joyStickDown != LOW && !sJsNu) {
+      sJsDn = false;
+      sJsUp = false;
+      state = 0;
+      sJsNu = true;
+     }
     
     int locked = digitalRead(B_LOC);
     
@@ -482,7 +506,7 @@ void lightRowsDown() {
 
   turnOffAllLeds();
   
-  int wait = 500;
+  int wait = 150;
   
   int row5Size = sizeof(row5)/sizeof(row5[0]);
   
@@ -524,24 +548,17 @@ void lightRowsDown() {
 
   int row1Size = sizeof(row1)/sizeof(row1[0]);
 
-     delay(wait);
+  delay(wait);
 
   lightUpLedPwmArray(row1, row1Size);
-
-  delay(wait);
-
-  turnOffLedPwmArray(row1, row1Size);
-  
-  delay(wait);
-
-  
+ 
 }
 
 void lightRowsUp(){
 
   turnOffAllLeds();
 
-  int wait = 500;
+  int wait = 150;
   
   int row1Size = sizeof(row1)/sizeof(row1[0]);
   
@@ -587,32 +604,9 @@ void lightRowsUp(){
 
   lightUpLedPwmArray(row5, row5Size);
 
-  delay(wait);
 
-  turnOffLedPwmArray(row5, row5Size);
-  
-  delay(wait);
 
   
-}
-
-void lightUpLedArray(Led leds[], int ledSize){
-
-  
-  for(unsigned int i=0; i < ledSize; i++){
-    
-    Led led = leds[i];
-    
-    int map = led.getMap();
-    int r = led.getR();
-    int g = led.getG();
-    int b = led.getB();
-    
-    tlc.setLED(map, r, g, b);
-    tlc.write();
-
-  }
-
 }
 
 void lightUpLedPwmArray(Led leds[], int ledSize){
